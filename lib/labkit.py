@@ -534,7 +534,14 @@ def die(*lines: str) -> None:
 
 
 def banner(title: str) -> None:
-    print(f"\n{'─' * 64}\n  {title}\n{'─' * 64}")
+    enc = (sys.stdout.encoding or "utf-8").lower()
+    line = "─" * 64
+    try:
+        line.encode(enc)
+        print(f"\n{line}\n  {title}\n{line}")
+    except UnicodeEncodeError:
+        safe = lambda text: text.encode(enc, errors="replace").decode(enc)
+        print(f"\n{safe(line)}\n  {title}\n{safe(line)}")
 
 
 def host_tag() -> str:

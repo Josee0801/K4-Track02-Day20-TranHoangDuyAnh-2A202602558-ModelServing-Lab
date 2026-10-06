@@ -192,35 +192,49 @@ def recommend(cpu: dict, ram: float, gpu: dict) -> dict:
     }
 
 
+def _safe_print(*values: object, sep: str = " ", end: str = "\n") -> None:
+    enc = (getattr(sys.stdout, "encoding", "utf-8") or "utf-8").lower()
+    def sanitize(value: object) -> str:
+        text = str(value)
+        try:
+            text.encode(enc)
+            return text
+        except UnicodeEncodeError:
+            return text.encode(enc, errors="replace").decode(enc)
+
+    rendered = sep.join(sanitize(v) for v in values)
+    sys.stdout.write(rendered + end)
+
+
 def main() -> int:
     cpu, ram, gpu = detect_cpu(), detect_ram_gb(), detect_gpu()
     rec = recommend(cpu, ram, gpu)
 
     line = "─" * 64
-    print(line)
-    print(f"  Platform : {platform.system()} {platform.release()} ({platform.machine()})")
-    print(f"  CPU      : {cpu['model']}")
-    print(f"             {cpu['cores_physical']} physical · {cpu['cores_logical']} logical cores")
+    _safe_print(line)
+    _safe_print(f"  Platform : {platform.system()} {platform.release()} ({platform.machine()})")
+    _safe_print(f"  CPU      : {cpu['model']}")
+    _safe_print(f"             {cpu['cores_physical']} physical · {cpu['cores_logical']} logical cores")
     exts = [n for n, k in (("AVX-512", "avx512"), ("AVX2", "avx2"), ("NEON", "neon")) if cpu.get(k)]
     if exts:
-        print(f"             extensions: {', '.join(exts)}")
-    print(f"  RAM      : {ram} GB")
-    print("  GPU      : ", end="")
+        _safe_print(f"             extensions: {', '.join(exts)}")
+    _safe_print(f"  RAM      : {ram} GB")
+    _safe_print("  GPU      : ", end="")
     active = [k for k, v in gpu["backends"].items() if v and k != "cpu_only"]
-    print(", ".join(active) if active else "none detected (CPU only)")
+    _safe_print(", ".join(active) if active else "none detected (CPU only)")
     for k, v in gpu["details"].items():
-        print(f"             - {k}: {v}")
-    print(line)
+        _safe_print(f"             - {k}: {v}")
+    _safe_print(line)
     spec = labkit.model_spec(rec["model_key"])
-    print(f"\n  Model         : {spec['label']}  [LAB_MODEL={rec['model_key']}]")
-    print(f"                  {spec['repo']}  (~{spec['download_gb']} GB)")
-    print(f"                  primary  {spec['primary'][1]}  ({spec['primary'][2]} GB)")
-    print(f"                  compare  {spec['compare'][1]}  ({spec['compare'][2]} GB)")
-    print(f"                  chosen because: {rec['model_choice_reason']}")
+    _safe_print(f"\n  Model         : {spec['label']}  [LAB_MODEL={rec['model_key']}]")
+    _safe_print(f"                  {spec['repo']}  (~{spec['download_gb']} GB)")
+    _safe_print(f"                  primary  {spec['primary'][1]}  ({spec['primary'][2]} GB)")
+    _safe_print(f"                  compare  {spec['compare'][1]}  ({spec['compare'][2]} GB)")
+    _safe_print(f"                  chosen because: {rec['model_choice_reason']}")
     alt = next(k for k in labkit.MODELS if k != rec["model_key"])
     a = labkit.MODELS[alt]
-    print(f"  Other option  : LAB_MODEL={alt}  ->  {a['label']}, ~{a['download_gb']} GB, "
-          f"needs {a['min_ram_gb']} GB RAM")
+    _safe_print(f"  Other option  : LAB_MODEL={alt}  ->  {a['label']}, ~{a['download_gb']} GB, "
+                f"needs {a['min_ram_gb']} GB RAM")
     # The prebuilt asset is chosen at `make setup` from what upstream actually
     # publishes for this OS -- which is NOT always the backend your GPU vendor
     # implies. Upstream ships no Linux CUDA build, so an NVIDIA box on Linux gets
@@ -232,27 +246,27 @@ def main() -> int:
             asset = json.loads(runtime_meta.read_text()).get("asset", "?")
         except (ValueError, OSError):
             asset = "?"
-        print(f"  llama.cpp     : prebuilt release {labkit.LLAMA_CPP_BUILD}  ({asset})")
+        _safe_print(f"  llama.cpp     : prebuilt release {labkit.LLAMA_CPP_BUILD}  ({asset})")
         live, why = labkit.gpu_offload_is_live()
-        print(f"  GPU offload   : {'ACTIVE -- ' + why if live else 'OFF -- ' + why}")
+        _safe_print(f"  GPU offload   : {'ACTIVE -- ' + why if live else 'OFF -- ' + why}")
         if not live and rec["llama_cpp_backend"] != "CPU":
-            print(f"                  base track is unaffected (100 pts need no GPU).")
-            print(f"                  to use the {rec['llama_cpp_backend']} you have, build from source:")
-            print(f"                  LLAMA_CMAKE_FLAGS={rec['llama_cpp_cmake_flag']} make build-llama")
+            _safe_print(f"                  base track is unaffected (100 pts need no GPU).")
+            _safe_print(f"                  to use the {rec['llama_cpp_backend']} you have, build from source:")
+            _safe_print(f"                  LLAMA_CMAKE_FLAGS={rec['llama_cpp_cmake_flag']} make build-llama")
     else:
-        print(f"  llama.cpp     : prebuilt release {labkit.LLAMA_CPP_BUILD}  (asset picked by `make setup`)")
-    print(f"  source build  : {rec['llama_cpp_cmake_flag'] or 'CPU only'}  (bonus B1 -- not used by the base track)")
-    print(f"  Tracks open   : {', '.join(rec['recommended_paths'])}")
+        _safe_print(f"  llama.cpp     : prebuilt release {labkit.LLAMA_CPP_BUILD}  (asset picked by `make setup`)")
+    _safe_print(f"  source build  : {rec['llama_cpp_cmake_flag'] or 'CPU only'}  (bonus B1 -- not used by the base track)")
+    _safe_print(f"  Tracks open   : {', '.join(rec['recommended_paths'])}")
     env = os.environ.get("LAB_RUNTIME_ENV")
     if env:
-        print(f"  Running on    : {env}  (declare this in REFLECTION section 1)")
+        _safe_print(f"  Running on    : {env}  (declare this in REFLECTION section 1)")
 
     if not rec["ram_sufficient"]:
-        print(f"\n  !! {ram} GB RAM is below the {spec['min_ram_gb']} GB floor even for "
-              f"{spec['label']}.")
-        print("     Run the lab in cloud/Day20-lab.ipynb (Colab or Kaggle) instead,")
-        print("     and say so in REFLECTION.md section 1. Grading is unaffected.")
-    print(line)
+        _safe_print(f"\n  !! {ram} GB RAM is below the {spec['min_ram_gb']} GB floor even for "
+                    f"{spec['label']}.")
+        _safe_print("     Run the lab in cloud/Day20-lab.ipynb (Colab or Kaggle) instead,")
+        _safe_print("     and say so in REFLECTION.md section 1. Grading is unaffected.")
+    _safe_print(line)
 
     out = {
         # "local" unless the cloud notebook sets LAB_RUNTIME_ENV (colab / kaggle).
