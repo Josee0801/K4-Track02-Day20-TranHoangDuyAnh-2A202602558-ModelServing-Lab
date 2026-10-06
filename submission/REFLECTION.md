@@ -33,7 +33,7 @@ _(Nếu dùng cloud fallback: nói rõ vì sao — RAM < 8 GB, setup fail, v.v. 
 **Setup story** (≤ 80 chữ): điều gì cần thay đổi để lab chạy trên máy bạn? Có bước
 nào fail rồi phải workaround không?
 
-`lab.ps1` lỗi cú pháp PowerShell và console cp1252 lỗi Unicode, nên mình sửa `lab.ps1`,
+`lab.ps1` lỗi cú pháp PowerShell và console cp1252 lỗi Unicode, nên tôi sửa `lab.ps1`,
 `detect-hardware.py`, `lib/labkit.py`. Tải model bằng `huggingface_hub` bị treo ở 0 MB/s,
 nên mình chuyển sang `curl.exe -C -` (~23 MB/s), rồi chạy `download-model.py
 --skip-download` để ghi `models/active.json`.
@@ -50,8 +50,7 @@ nên mình chuyển sang `curl.exe -C -` (~23 MB/s), rồi chạy `download-mode
 | UD-Q2_K_XL | 2.24 | 2546 | 374 / 466 | 39.2 / 41.5 | 2843 / 2926 / 2926 | 25.5 |
 
 **Quan sát** (≤ 60 chữ): 2-bit chỉ nhanh hơn 1.12× ở decode (25.5 vs 22.8 tok/s) và nhỏ
-hơn 0.73 GB, nhưng TTFT chậm hơn (374 vs 227 ms). Vì vậy **không đáng** trên máy này. Mình
-chưa so chất lượng câu trả lời của hai bản.
+hơn 0.73 GB, nhưng TTFT chậm hơn (374 vs 227 ms). Vì vậy **không đáng** trên máy này. Chưa so chất lượng câu trả lời của hai bản.
 
 ---
 
@@ -203,5 +202,4 @@ xem được → 0 điểm.
 ## 9. Khai báo sử dụng AI  *(xem `docs/RULES.md` §3)*
 
 Dùng GitHub Copilot (AI assistant trong VS Code) để sửa lỗi môi trường Windows, chạy các
-lệnh của lab và soạn phần nhận xét từ số liệu thật. Mình đã đọc lại các số liệu trong
-báo cáo.
+lệnh của lab và soạn phần nhận xét từ số liệu thật. 
